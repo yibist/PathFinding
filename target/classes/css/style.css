@@ -1,0 +1,28 @@
+.root {
+    -fx-background: #333333;
+    -fx-text-fill: -text-dark;
+    -fx-prompt-text-fill: rgba(255,255,255,.3);
+
+    -text-disabled: -text-disabled-dark;
+    -background-disabled: rgba(255,255,255,.12);
+    -background-fill: -text-dark;
+
+    -flat-button-hover-background: rgba(204, 204, 204, 0.15);
+    -flat-button-pressed-background: rgba(204, 204, 204, 0.25);
+    -flat-button-disabled-fill: rgba(255, 255, 255, 0.3);
+}
+
+.button {
+    -fx-background-color: #1E90FF; /* Dodger Blue */
+    -fx-text-fill: white;
+    -fx-background-radius: 0; /* Rectangle with sharp corners */
+    -fx-border-radius: 0;     /* Rectangle with sharp corners */
+}
+
+.button:hover {
+    -fx-background-color: #1E90FF; /* No change on hover */
+}
+
+.button:pressed {
+    -fx-background-color: #104E8B; /* Darker blue when pressed */
+}
