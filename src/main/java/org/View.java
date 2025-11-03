@@ -6,6 +6,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
+import javafx.scene.input.MouseButton;
 import javafx.scene.paint.Color;
 
 import java.util.function.UnaryOperator;
@@ -22,7 +23,8 @@ public class View {
     @FXML
     private Button setGridButton;
 
-    GraphicsContext gc;
+    private CellState drawState = null;
+    private GraphicsContext gc;
 
     UnaryOperator<TextFormatter.Change> integerFilter = change -> {
         String newText = change.getControlNewText();
@@ -52,22 +54,53 @@ public class View {
         setGrid();
         drawGrid();
 
-        canvas2D.setOnMousePressed(event -> handleCanvasClick(event.getX(), event.getY()));
-        canvas2D.setOnMouseDragged(event -> handleCanvasClick(event.getX(), event.getY()));
+        canvas2D.setOnMousePressed(event -> handleCanvasClick(getCellX(event.getX()), getCellY(event.getY()), event.getButton()));
+        canvas2D.setOnMouseDragged(event -> handleCanvasDrag(getCellX(event.getX()), getCellY(event.getY())));
+        canvas2D.setOnMouseExited(event -> drawState = null);
     }
 
-    private void handleCanvasClick(double x, double y) {
+    private int getCellX(double x) {
         int gridSize = getGridSize();
         int width = getWidth();
-        int height = getHeight();
-
         x = Math.max(0, Math.min(x, width * gridSize - 1));
+        return (int) (x / gridSize);
+    }
+
+    private int getCellY(double y) {
+        int gridSize = getGridSize();
+        int height = getHeight();
         y = Math.max(0, Math.min(y, height * gridSize - 1));
+        return (int) (y / gridSize);
+    }
 
-        int cellX = (int) (x / gridSize);
-        int cellY = (int) (y / gridSize);
+    private void handleCanvasDrag(int x, int y) {
+        if (drawState == null) return;
+        pathFinding2D.setCell(x, y, drawState);
+        drawGrid();
+    }
 
-        pathFinding2D.SetState(cellX, cellY, GridState.Wall);
+    private void handleCanvasClick(int x, int y, MouseButton button) {
+        if (button == MouseButton.SECONDARY) {
+            if (!pathFinding2D.hasStart()) {
+                pathFinding2D.setCell(x, y, CellState.Start);
+            } else {
+                pathFinding2D.setCell(x, y, CellState.CheckPoint);
+            }
+            drawGrid();
+            return;
+        }
+
+        if (button == MouseButton.MIDDLE) {
+            drawState = CellState.Normal;
+            return;
+        }
+
+
+        if (pathFinding2D.getCell(x, y) == CellState.Wall) {
+            drawState = CellState.Stairs;
+        } else {
+            drawState = CellState.Wall;
+        }
         drawGrid();
     }
 
@@ -91,17 +124,15 @@ public class View {
     }
 
     private void drawGrid() {
-        GridState[][] grid = pathFinding2D.getGrid();
+        CellState[][] grid = pathFinding2D.getGrid();
         gc.clearRect(0, 0, canvas2D.getWidth(), canvas2D.getHeight());
         gc.setStroke(Color.WHITE);
         int gridSize = getGridSize();
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[i].length; j++) {
-                if (grid[i][j] == GridState.Wall) {
-                    gc.setFill(Color.RED);
-                    gc.fillRect(j * gridSize, i * gridSize, gridSize, gridSize);
-                }
-                gc.strokeRect(j * gridSize, i * gridSize, gridSize, gridSize);
+        for (int y = 0; y < grid.length; y++) {
+            for (int x = 0; x < grid[y].length; x++) {
+                gc.setFill(grid[y][x].color);
+                gc.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                gc.strokeRect(x * gridSize, y * gridSize, gridSize, gridSize);
             }
         }
     }
