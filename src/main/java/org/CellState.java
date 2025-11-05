@@ -4,6 +4,8 @@ import javafx.scene.paint.Color;
 
 public enum CellState {
     Normal(Color.TRANSPARENT),
+    Visited(Color.GRAY),
+    Calculated(Color.LIGHTGRAY),
     Wall(Color.RED),
     Stairs(Color.YELLOW),
     Start(Color.GREEN),
@@ -11,7 +13,7 @@ public enum CellState {
     CheckPoint(Color.LIGHTBLUE);
 
 
-    public Color color;
+    public final Color color;
     CellState(Color color) {
         this.color = color;
     }

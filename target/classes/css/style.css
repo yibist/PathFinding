@@ -26,3 +26,18 @@
 .button:pressed {
     -fx-background-color: #104E8B; /* Darker blue when pressed */
 }
+
+.combo-box {
+    -fx-background-color: #1E90FF;
+    -fx-text-fill: white;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.combo-box:hover {
+    -fx-background-color: #1E90FF;
+}
+
+.combo-box:pressed, .combo-box:focused {
+    -fx-background-color: #104E8B;
+}

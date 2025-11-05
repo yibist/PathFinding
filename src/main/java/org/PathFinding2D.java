@@ -4,8 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class PathFinding2D {
+    private boolean isSetUp = false;
     private CellState[][] grid;
-    private ArrayList<int[]> checkPointOrder = new ArrayList<int[]>();
+    private final ArrayList<int[]> checkPointOrder = new ArrayList<>();
+    int[][] gValues;
+    int[][] hValues;
+    boolean[][] closed;
+    int[][] directions = {
+            {-1, 0}, {1, 0}, {0, -1}, {0, 1}, // straight
+            {-1, -1}, {-1, 1}, {1, -1}, {1, 1} // diagonals
+    };
 
     PathFinding2D(int width, int height) {
         setGrid(width, height);
@@ -14,7 +22,7 @@ public class PathFinding2D {
 
     public void setCell(int x, int y, CellState cellState) {
         if (cellState == CellState.CheckPoint) {
-            checkPointOrder.add(new int[] {x, y});
+            checkPointOrder.add(new int[]{x, y});
         }
         grid[y][x] = cellState;
     }
@@ -24,12 +32,13 @@ public class PathFinding2D {
         for (CellState[] cellStates : grid) {
             Arrays.fill(cellStates, CellState.Normal);
         }
+        isSetUp = false;
+        checkPointOrder.clear();
     }
 
     public CellState[][] getGrid() {
         return this.grid;
     }
-
 
 
     public CellState getCell(int cellX, int cellY) {
@@ -45,76 +54,111 @@ public class PathFinding2D {
         return false;
     }
 
+    public void doPathFindingStep() {
+        if (!isSetUp) {
+            setUpPathFinding();
+            return;
+        }
+        int minValue = Integer.MAX_VALUE;
+        int minX = 0;
+        int minY = 0;
 
-    public ArrayList<int[]> findPath() {
-        int startX, startY;
+        for (int y = 0; y < gValues.length; y++) {
+            for (int x = 0; x < gValues[y].length; x++) {
+                int val = gValues[y][x] + hValues[y][x];
+                if (val > 0 && (val < minValue || (val == minValue && hValues[y][x] < hValues[minY][minX])) && !closed[y][x]) {
+                    minValue = val;
+                    minX = x;
+                    minY = y;
+                }
+            }
+        }
+        doPathFindingStepOn(minX, minY);
+    }
+
+
+    private void doPathFindingStepOn(int x, int y) {
+        closed[y][x] = true;
+        if (x == checkPointOrder.getFirst()[0] && y == checkPointOrder.getFirst()[1]) {
+            // end found
+            setUpPathFinding();
+            checkPointOrder.removeFirst();
+            return;
+        }
+        if (grid[y][x] == CellState.Calculated) setCell(x, y, CellState.Visited);
+
+
+        for (int i = 0; i < directions.length; i++) {
+            int newX = x + directions[i][0];
+            int newY = y + directions[i][1];
+
+            if (newX < 0 || newY < 0 || newY >= grid.length || newX >= grid[newY].length) {
+                continue;
+            }
+
+            if (grid[newY][newX] == CellState.Wall) {
+                gValues[newY][newX] = -1;
+                hValues[newY][newX] = -1;
+                continue;
+            } else if (grid[newY][newX] == CellState.Start) {
+                continue;
+            }
+
+
+            int increase = 10;
+            if (i >= 4) increase = 14;
+            if (gValues[newY][newX] > gValues[y][x] + increase || gValues[newY][newX] == 0) {
+                gValues[newY][newX] = gValues[y][x] + increase;
+
+            }
+
+            int dx = Math.abs(newX - checkPointOrder.getFirst()[0]);
+            int dy = Math.abs(newY - checkPointOrder.getFirst()[1]);
+            int straight = 10;
+            int diagonal = 14;
+
+            hValues[newY][newX] = diagonal * Math.min(dx, dy) + straight * (Math.max(dx, dy) - Math.min(dx, dy));
+            if (grid[newY][newX] == CellState.Normal) setCell(newX, newY, CellState.Calculated);
+        }
+    }
+
+    public void setUpPathFinding() {
+        int startX = 0, startY = 0;
+        closed = new boolean[grid.length][grid[0].length];
+        gValues = new int[grid.length][grid[0].length];
+        hValues = new int[grid.length][grid[0].length];
         for (int y = 0; y < grid.length; y++) {
-            for (int x = 0; x < grid[x].length; x++) {
+            for (int x = 0; x < grid[y].length; x++) {
                 if (grid[y][x] == CellState.Start) {
                     startX = x;
                     startY = y;
+                } else if (grid[y][x] == CellState.Wall) {
+                    gValues[y][x] = -1;
+                    hValues[y][x] = -1;
                 }
             }
         }
-
-        boolean[][] visited = new boolean[grid.length][grid[0].length];
-        int[][] gValues = new int[grid.length][grid[0].length];
-        int[][] hValues = new int[grid.length][grid[0].length];
-
-        return new ArrayList<>();
+        closed[startX][startY] = true;
+        doPathFindingStepOn(startX, startY);
+        isSetUp = true;
     }
 
-    int[][] calculateGValues(boolean[][] visited, int startX, int startY) {
-        int[][] gValues = new int[grid.length][grid[0].length];
-
+    public int[][] getFValues() {
+        if (!isSetUp) return null;
+        int[][] fValues = new int[grid.length][grid[0].length];
         for (int y = 0; y < grid.length; y++) {
             for (int x = 0; x < grid[y].length; x++) {
-                if (grid[y][x] == CellState.Wall) {
-                    gValues[y][x] = -1;
-                } else {
-                    gValues[y][x] = Integer.MAX_VALUE;
-                }
+                fValues[y][x] = gValues[y][x] + hValues[y][x];
             }
         }
+        return fValues;
+    }
 
-        gValues[startY][startX] = 0;
-
-        int[][] directions = {
-                {-1, 0}, {1, 0}, {0, -1}, {0, 1},
-                {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
-        };
-
-        for (int y = 0; y < grid.length; y++) {
-            for (int x = 0; x < grid[y].length; x++) {
-                if (!visited[y][x] || grid[y][x] == CellState.Wall) continue;
-
-                for (int[] dir : directions) {
-                    int nx = x + dir[0];
-                    int ny = y + dir[1];
-
-                    if (ny < 0 || ny >= grid.length || nx < 0 || nx >= grid[0].length)
-                        continue;
-
-                    if (grid[ny][nx] == CellState.Wall) continue;
-
-                    int moveCost = (Math.abs(dir[0]) + Math.abs(dir[1]) == 2) ? 14 : 10;
-                    int newG = gValues[y][x] + moveCost;
-
-                    if (newG < gValues[ny][nx]) {
-                        gValues[ny][nx] = newG;
-                    }
-                }
-            }
-        }
-
+    public int[][] getgValues() {
         return gValues;
     }
 
-
-    int movementCost(int x1, int y1, int x2, int y2) {
-        int dx = Math.abs(x1 - x2);
-        int dy = Math.abs(y1 - y2);
-        return (dx == 1 && dy == 1) ? 14 : 10; // diagonal or straight
+    public int[][] gethValues() {
+        return hValues;
     }
-
 }
